@@ -508,7 +508,12 @@ function wipe(){
   const b=$("wipeBtn");
   if(b.dataset.armed!=="1"){ b.dataset.armed="1"; b.textContent="本当に削除する（もう一度）"; setTimeout(()=>{b.dataset.armed="";b.textContent="全データを削除";},4000); return; }
   state={start:null,roster:{},finishes:[],rosterFile:null,opt:{sec:false}}; $("fmtSel").value="hm"; b.dataset.armed=""; b.textContent="全データを削除";
-  $("sDate").value=""; $("sTime").value=""; save(); renderAll();
+  $("sDate").value=""; $("sTime").value="";
+  // 画面に残っている各種メッセージ・選択済みファイル・入力途中の内容も消す
+  ["recMsg","setMsg","rosterMsg","backupMsg"].forEach(id=>msg(id,"",""));
+  $("rosterFile").value=""; $("backupFile").value=""; $("bib").value="";
+  freshId=null; editingId=null; $("sortSel").value="time";
+  save(); renderAll(); msg("backupMsg","全データを削除しました。","");
 }
 
 /* ---------- roster import ---------- */
