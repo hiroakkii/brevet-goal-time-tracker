@@ -158,6 +158,7 @@
   #recentTable .c-bib{width:60px}#recentTable .c-time{width:96px}#recentTable .c-medal{width:92px}#recentTable .c-act{width:64px}
   #recentTable td{padding-left:6px;padding-right:6px}
   .missing{color:var(--warn);font-weight:700}
+  .nm2{display:none}
   .none{color:#A3ADB9}
   tr.fresh td{animation:flash 2.4s ease-out}
   @keyframes flash{0%,30%{background:var(--vest-soft)}100%{background:transparent}}
@@ -196,15 +197,16 @@
   select{font-family:var(--font);font-size:15px}
   .toolbar select{width:auto;min-height:40px}
   input[type=file]{font-size:14px;max-width:100%}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
   .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
   .hint{font-size:13px;color:var(--sub);line-height:1.75;margin:10px 0 0}
   .hint ul{margin:4px 0 0;padding-left:1.2em}
 
   /* ---- 設定タブ：2列 ---- */
-  .settings{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+  .settings{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
   .settings .panel + .panel{margin-top:0}
-  .settings .col{display:grid;gap:12px}
+  .settings .col{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+  .rec>*,.settings>*{min-width:0}   /* 中身の幅で画面より広がらないように */
 
   /* ---- ダイアログ ---- */
   dialog{border:0;background:var(--paper);color:var(--ink);border-radius:14px;padding:18px 20px;width:min(460px,94vw);
@@ -217,7 +219,7 @@
 
   /* ---- 縦長・狭い画面 ---- */
   @media (max-width:760px){
-    .rec,.settings{grid-template-columns:1fr}
+    .rec,.settings{grid-template-columns:minmax(0,1fr)}
     .c-clk,td.clk{display:none}
   }
   @media (max-width:520px){
@@ -225,9 +227,34 @@
     nav{order:3;width:100%}
     nav button{flex:1}
     .club{height:34px}
-    .sheethead img{height:48px}
-    .c-medal{width:72px}
-    .grid2{grid-template-columns:1fr}
+    /* 上部：1段目にロゴと現在時刻、2段目に大会名、3段目にタブ（一覧ではロゴを外すので大会名を1段目に） */
+    .now{order:1;margin-left:auto}
+    .club + .brand{order:2;flex:0 0 100%;padding-left:0;border-left:0;font-size:15px}
+    body.on-list .club + .brand{order:0;flex:1 1 0;font-size:17px}
+    .sheethead{flex-wrap:wrap}
+    .sheethead img{height:48px;max-width:100%}
+    .sheethead div{margin-left:0;text-align:left;flex:1 1 100%}
+    /* 縦向きのスマホ：表の列と余白を詰めて、横にはみ出さないようにする */
+    .panel{padding:12px 10px}
+    th,td{padding-left:4px;padding-right:4px}
+    #recentTable td{padding-left:4px;padding-right:4px}
+    td.t{font-size:15px}
+    .c-rank{width:28px}.c-bib,#recentTable .c-bib{width:46px}.c-time,#recentTable .c-time{width:76px}
+    .c-medal,#recentTable .c-medal{width:72px}.c-act,#recentTable .c-act{width:46px}
+    .medal{padding:0 4px;font-size:12px;gap:2px}
+    /* 氏名は番号の下に小さく出し、氏名の列は幅0にする（列の数は変えない） */
+    .c-bib,#recentTable .c-bib{width:auto}
+    .c-name,#recentTable .c-name{width:0}
+    td.nm,th.nm{padding:0;font-size:0;border-left:0}
+    td .nm2{display:block;font-family:var(--font);font-size:13px;font-weight:400;color:var(--sub);line-height:1.3;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    th .nm2{display:inline}
+    td.act .btn.sm{padding:0 6px}
+    .entry .btn.primary{font-size:18px;padding:0 8px}
+    .sub-actions .btn{padding:4px 6px;font-size:14px;white-space:normal;word-break:keep-all;line-height:1.25;text-align:center;flex-direction:column;gap:0}
+    .sub-actions .btn small{font-size:11px}
+    .sub-actions .spacer{flex-basis:4px}
+    .grid2{grid-template-columns:minmax(0,1fr)}
   }
   /* スマホ横向き：高さが低いので縦の余白を詰める */
   @media (max-height:460px) and (orientation:landscape){
@@ -279,7 +306,7 @@
           <button class="btn primary" onclick="recordFinish()">ゴール記録</button>
         </div>
         <div class="sub-actions">
-          <button class="btn" onclick="stampOnly()">時刻だけ打刻</button>
+          <button class="btn" onclick="stampOnly()">時刻だけ<wbr>打刻</button>
           <span class="spacer" aria-hidden="true"></span>
           <button class="btn dns" onclick="recordRetire('DNS')">DNS <small>未出走</small></button>
           <button class="btn dnf" onclick="recordRetire('DNF')">DNF <small>途中棄権</small></button>
@@ -298,7 +325,7 @@
         <div class="panel">
           <h2>直近の記録 <button class="btn quiet sm aside" onclick="showTab('list')" style="margin-left:auto">一覧を開く</button></h2>
           <table id="recentTable">
-            <colgroup><col class="c-bib"><col><col class="c-time"><col class="c-medal"><col class="c-act"></colgroup>
+            <colgroup><col class="c-bib"><col class="c-name"><col class="c-time"><col class="c-medal"><col class="c-act"></colgroup>
             <tbody id="recentBody"></tbody>
           </table>
         </div>
@@ -335,9 +362,9 @@
         <button class="btn quiet sm" onclick="openEdit(null)" style="margin-left:auto">＋ 手入力で追加</button>
       </div>
       <table style="margin-top:6px">
-        <colgroup><col class="c-rank"><col class="c-bib"><col><col class="c-clk"><col class="c-time"><col class="c-medal"><col class="c-act"></colgroup>
+        <colgroup><col class="c-rank"><col class="c-bib"><col class="c-name"><col class="c-clk"><col class="c-time"><col class="c-medal"><col class="c-act"></colgroup>
         <thead><tr>
-          <th style="text-align:right">順位</th><th>番号</th><th>氏名</th>
+          <th style="text-align:right">順位</th><th>番号<span class="nm2">・氏名</span></th><th class="nm">氏名</th>
           <th class="c-clk">ゴール時刻</th><th>タイム</th><th>メダル</th><th></th>
         </tr></thead>
         <tbody id="listBody"></tbody>
@@ -650,8 +677,8 @@ function rowFinish(r, rank){                     // 一覧の1行
   const clock = stOf(r)==="DNS" ? "—" : fmtClockShort(r.t);
   return `<tr class="${r.id===freshId?"fresh":""}">
     <td class="rank num">${rank}</td>
-    <td class="num">${bibCell(r)}</td>
-    <td title="${nameOf(r.bib)}">${nameCell(r)}</td>
+    <td class="num">${bibCell(r)}<span class="nm2" title="${nameOf(r.bib)}">${nameCell(r)}</span></td>
+    <td class="nm" title="${nameOf(r.bib)}">${nameCell(r)}</td>
     <td class="clk num">${clock}</td>
     <td class="t">${timeCell(r)}</td>
     <td>${medalCell(r)}</td>
@@ -660,8 +687,8 @@ function rowFinish(r, rank){                     // 一覧の1行
 }
 function rowRecent(r){                           // 記録タブの直近の1行
   return `<tr class="${r.id===freshId?"fresh":""}">
-    <td class="num">${bibCell(r)}</td>
-    <td title="${nameOf(r.bib)}">${nameCell(r)}</td>
+    <td class="num">${bibCell(r)}<span class="nm2" title="${nameOf(r.bib)}">${nameCell(r)}</span></td>
+    <td class="nm" title="${nameOf(r.bib)}">${nameCell(r)}</td>
     <td class="t">${timeCell(r)}</td>
     <td>${medalCell(r)}</td>
     <td class="act">${editBtn(r)}</td>
