@@ -185,6 +185,34 @@
   .sheethead img{height:64px;width:auto;max-width:62%;object-fit:contain;object-position:left bottom;display:block}
   .sheethead div{font-size:13px;color:var(--sub);line-height:1.4;margin-left:auto;text-align:right;min-width:0}
   .sheethead div b{display:block;color:var(--ink);font-size:18px}
+  /* 一覧の表示切り替え（結果／参加者一覧） */
+  .viewsw{display:flex;background:#DCE2E8;border-radius:10px;padding:3px;gap:3px;width:max-content;max-width:100%;margin:0 0 10px}
+  .viewsw button{appearance:none;border:0;background:transparent;color:var(--sub);font-weight:700;min-height:40px;padding:0 18px;border-radius:8px;cursor:pointer}
+  .viewsw button[aria-pressed="true"]{background:var(--paper);color:var(--ink);box-shadow:0 1px 2px rgba(24,33,44,.18)}
+  /* 状態の色：ゴール＝紺、走行中＝白、DNF＝赤、DNS＝灰 */
+  .tally{display:flex;height:10px;border-radius:5px;overflow:hidden;background:#EDF0F3;margin:2px 0 10px}
+  .tally i{display:block}
+  .tally .g{background:var(--stamp)} .tally .r{background:var(--paper);box-shadow:inset 0 0 0 1px #B9C3CE}
+  .tally .f{background:#E5928C} .tally .s{background:#B9C3CE} .tally .p{background:#EDF0F3}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .chip{appearance:none;display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border-radius:20px;
+    border:1px solid #B9C3CE;background:var(--paper);font-size:14px;font-weight:700;cursor:pointer}
+  .chip b{font-family:var(--num);font-size:16px}
+  .chip[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+  .dot.g{background:var(--stamp)} .dot.r,.dot.p{background:var(--paper);box-shadow:inset 0 0 0 2px #8C97A4}
+  .dot.f{background:var(--err)} .dot.s{background:#A3ADB9}
+  .st{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:3px 10px;border-radius:6px;white-space:nowrap}
+  .st.g{background:var(--stamp-soft);color:var(--stamp)} .st.r,.st.p{background:var(--paper);color:var(--sub);box-shadow:inset 0 0 0 1px #C5CED7}
+  .st.f{background:var(--err-soft);color:var(--err)} .st.s{background:#EDF0F3;color:var(--sub)}
+  .c-st{width:112px}
+  tr.running td{background:#FBFCFD}
+  td.t .run{color:var(--sub);font-weight:400}
+  tr.sep td{height:auto;padding:14px 8px 6px;font-size:13px;font-weight:700;color:var(--warn);border-bottom:2px solid var(--rule);overflow:visible}
+  .btn.rec{color:var(--stamp);border-color:#9DB0DD}
+  .runacts{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin-top:14px}
+  .runacts .btn{min-height:52px;font-size:17px}
+  #listMsg{margin:0 0 6px}
   .exports{display:flex;gap:8px;flex-wrap:wrap;padding-top:10px;margin-top:4px;border-top:1px solid var(--rule)}
   .exports .btn.primary{flex:0 1 auto}
 
@@ -242,6 +270,12 @@
     .c-rank{width:28px}.c-bib,#recentTable .c-bib{width:46px}.c-time,#recentTable .c-time{width:76px}
     .c-medal,#recentTable .c-medal{width:72px}.c-act,#recentTable .c-act{width:46px}
     .medal{padding:0 4px;font-size:12px;gap:2px}
+    .c-st{width:64px}
+    .st{padding:3px 6px;font-size:12px}
+    .st .dot{display:none}
+    .chip{padding:0 10px;min-height:38px}
+    .viewsw{width:100%}
+    .viewsw button{flex:1;padding:0 8px}
     /* 氏名は番号の下に小さく出し、氏名の列は幅0にする（列の数は変えない） */
     .c-bib,#recentTable .c-bib{width:auto}
     .c-name,#recentTable .c-name{width:0}
@@ -340,9 +374,17 @@
         <img data-logo="full" alt="Randonneurs MIYAGI to the deep north">
         <div><b>リザルト</b><span id="sheetEvent"></span></div>
       </div>
-      <div class="toolbar">
+      <div class="viewsw" role="group" aria-label="一覧の表示">
+        <button id="vw-result" aria-pressed="true" onclick="setListView('result')">結果（記録順）</button>
+        <button id="vw-people" aria-pressed="false" onclick="setListView('people')">参加者一覧</button>
+      </div>
+      <div id="peopleHead" class="hidden">
+        <div class="tally" id="tally" aria-hidden="true"></div>
+        <div class="chips" id="chips" role="group" aria-label="状態で絞り込む"></div>
+      </div>
+      <div class="toolbar" id="listToolbar">
         <div class="count" id="countPill">ゴール <b>0</b> 名</div>
-        <label for="sortSel">並び順
+        <label for="sortSel" id="sortWrap">並び順
           <select id="sortSel" onchange="renderList()">
             <option value="time">タイム順（順位）</option>
             <option value="recent">記録が新しい順</option>
@@ -361,13 +403,22 @@
         <button class="btn sm" onclick="exportCsv()">CSVで書き出す</button>
         <button class="btn quiet sm" onclick="openEdit(null)" style="margin-left:auto">＋ 手入力で追加</button>
       </div>
-      <table style="margin-top:6px">
+      <div class="msg" id="listMsg"></div>
+      <table style="margin-top:6px" id="resultTable">
         <colgroup><col class="c-rank"><col class="c-bib"><col class="c-name"><col class="c-clk"><col class="c-time"><col class="c-medal"><col class="c-act"></colgroup>
         <thead><tr>
           <th style="text-align:right">順位</th><th>番号<span class="nm2">・氏名</span></th><th class="nm">氏名</th>
           <th class="c-clk">ゴール時刻</th><th>タイム</th><th>メダル</th><th></th>
         </tr></thead>
         <tbody id="listBody"></tbody>
+      </table>
+      <table style="margin-top:6px" id="peopleTable" class="hidden">
+        <colgroup><col class="c-bib"><col class="c-name"><col class="c-st"><col class="c-clk"><col class="c-time"><col class="c-medal"><col class="c-act"></colgroup>
+        <thead><tr>
+          <th>番号<span class="nm2">・氏名</span></th><th class="nm">氏名</th><th>状態</th>
+          <th class="c-clk">ゴール時刻</th><th>タイム</th><th>メダル</th><th></th>
+        </tr></thead>
+        <tbody id="peopleBody"></tbody>
       </table>
     </div>
   </section>
@@ -456,6 +507,20 @@
       <button class="btn quiet sm" onclick="editDlg.close()">やめる</button>
       <button class="btn primary sm" onclick="saveEdit()">保存</button>
     </span>
+  </div>
+</dialog>
+
+<dialog id="runDlg">
+  <h3 id="runTitle">記録する</h3>
+  <p class="hint" id="runInfo" style="margin-top:2px"></p>
+  <div class="runacts">
+    <button class="btn primary" id="runFin" onclick="runRecord('FIN')">ゴール（今の時刻）</button>
+    <button class="btn dnf" onclick="runRecord('DNF')">DNF <small>途中棄権</small></button>
+    <button class="btn dns" onclick="runRecord('DNS')">DNS <small>未出走</small></button>
+  </div>
+  <div class="row">
+    <button class="btn quiet sm" onclick="runCustom()">時刻を指定して記録</button>
+    <button class="btn quiet sm" onclick="runDlg.close()">やめる</button>
   </div>
 </dialog>
 
@@ -643,6 +708,7 @@ function nameOf(bib){ return state.roster[String(bib)] || ""; }
 function renderClock(){
   const now = Date.now();
   const d = new Date(now);
+  tickRunning();
   $("nowClock").textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   if(state.start==null){
     $("elapsed").textContent = "--:--:--";
@@ -709,6 +775,12 @@ function renderRecent(){
     </tr>`).join("");
 }
 function renderList(){
+  const people = listView==="people";
+  $("peopleHead").classList.toggle("hidden", !people);
+  $("peopleTable").classList.toggle("hidden", !people);
+  $("resultTable").classList.toggle("hidden", people);
+  $("listToolbar").classList.toggle("hidden", people);   // 並び順・Excelの時間表記は「結果」の表示だけで使う
+  if(people) renderPeople();
   const mode = $("sortSel").value;
   const order = {FIN:0, DNF:1, DNS:2};
   let rs = [...state.finishes];
@@ -729,6 +801,104 @@ function renderList(){
         return rowFinish(r, showNum);
       }).join("")
     : `<tr><td colspan="7" class="empty">記録がありません。<br>記録タブで受付番号を入力すると、ここに順位とタイムが並びます。</td></tr>`;
+}
+/* ---------- 参加者一覧（名簿の全員と、それぞれの状態） ---------- */
+let listView = "result", peopleFilter = "all", runBib = null;
+const ST_LABEL = {g:"ゴール", r:"走行中", p:"スタート前", f:"DNF", s:"DNS"};
+function setListView(v){
+  listView = v;
+  $("vw-result").setAttribute("aria-pressed", String(v==="result"));
+  $("vw-people").setAttribute("aria-pressed", String(v==="people"));
+  msg("listMsg","","");
+  renderList();
+}
+function setPeopleFilter(f){ peopleFilter = f; renderPeople(); }
+function rosterEntries(){                       // 名簿を番号ごとに1人ずつ（「007」と「7」は同じ人）
+  const groups=new Map();
+  Object.keys(state.roster).forEach(k=>{ const n=norm(k); if(!groups.has(n) || k.length>groups.get(n).length) groups.set(n,k); });
+  const ro = state.rosterFile && state.rosterFile.rowOf;
+  return [...groups.entries()]
+    .sort(ro ? (a,b)=>(ro[a[0]]||1e9)-(ro[b[0]]||1e9) || (parseInt(a[0])||0)-(parseInt(b[0])||0)
+             : (a,b)=>(parseInt(a[0])||0)-(parseInt(b[0])||0))
+    .map(([n,k])=>({n, bib:k, name:state.roster[k]||""}));
+}
+function stKey(r){                              // 記録 → 状態の記号
+  if(!r) return state.start==null ? "p" : "r";
+  const st=stOf(r); return st==="FIN" ? "g" : st==="DNF" ? "f" : "s";
+}
+const stTag = k => `<span class="st ${k}"><span class="dot ${k}"></span>${ST_LABEL[k]}</span>`;
+function rowPerson(bib, name, r, key){
+  const k = stKey(r);
+  const nm = name || '<span class="none">—</span>';
+  const clock = (k==="g"||k==="f") ? fmtClockShort(r.t) : "—";
+  const time = k==="g" ? fmtDur(elapsedOf(r))
+             : k==="r" ? `<span class="run" data-run="1">${fmtDur(Date.now()-state.start)}</span>` : "—";
+  const act = r ? editBtn(r) : `<button class="btn rec sm" onclick="openRun('${key}')">記録</button>`;
+  return `<tr class="${r && r.id===freshId ? "fresh" : (!r ? "running" : "")}">
+    <td class="num">${bib ? bib : '<span class="missing">未入力</span>'}<span class="nm2" title="${name}">${nm}</span></td>
+    <td class="nm" title="${name}">${nm}</td>
+    <td>${stTag(k)}</td>
+    <td class="clk num">${clock}</td>
+    <td class="t">${time}</td>
+    <td>${r ? medalCell(r) : '<span class="none">—</span>'}</td>
+    <td class="act">${act}</td>
+  </tr>`;
+}
+function renderPeople(){
+  const people = rosterEntries(), recs = recMap();
+  const list = people.map(p=>({...p, r:recs.get(p.n)}));
+  const extras = collectExtras(new Set(people.map(p=>p.n)));
+  const all = list.concat(extras.map(x=>({bib:x.rec.bib, name:nameOf(x.rec.bib), r:x.rec, extra:true})));
+  const runKey = state.start==null ? "p" : "r";
+  const c={g:0,r:0,p:0,f:0,s:0}; all.forEach(x=>c[stKey(x.r)]++);
+  const N = all.length || 1;
+  $("tally").innerHTML = ["g",runKey,"f","s"].map(k=>`<i class="${k}" style="width:${c[k]/N*100}%"></i>`).join("");
+  const F = [["all","全員",all.length],[runKey,ST_LABEL[runKey],c[runKey]],["g","ゴール",c.g],["f","DNF",c.f],["s","DNS",c.s]];
+  if(peopleFilter==="r"||peopleFilter==="p") peopleFilter = runKey;
+  $("chips").innerHTML = F.map(([k,l,n])=>`<button class="chip" aria-pressed="${peopleFilter===k}" onclick="setPeopleFilter('${k}')">${k==="all"?"":`<span class="dot ${k}"></span>`}${l} <b>${n}</b></button>`).join("");
+  if(!people.length){
+    $("peopleBody").innerHTML = `<tr><td colspan="7" class="empty">名簿がまだありません。<br>設定タブで出場者名簿（Excel / CSV）を取り込むと、参加者全員の状態がここに並びます。</td></tr>`;
+    return;
+  }
+  const keep = x => peopleFilter==="all" || stKey(x.r)===peopleFilter;
+  const main = list.filter(keep), ex = all.filter(x=>x.extra).filter(keep);
+  let html = main.map(x=>rowPerson(x.bib, x.name, x.r, x.n)).join("");
+  // 見出し行は列をまたがず（狭い画面で列の数がずれないように）、文字だけを右へはみ出させる
+  if(ex.length) html += `<tr class="sep"><td>名簿にない番号・番号未入力（${ex.length}件）</td><td class="nm"></td><td></td><td class="clk"></td><td></td><td></td><td></td></tr>` + ex.map(x=>rowPerson(x.bib, x.name, x.r, "")).join("");
+  if(!html) html = `<tr><td colspan="7" class="empty">${peopleFilter===runKey ? (runKey==="r" ? "走行中の人はいません。全員の結果が出そろいました。" : "スタート前の人はいません。") : "この状態の人はいません。"}</td></tr>`;
+  $("peopleBody").innerHTML = html;
+}
+function openRun(n){
+  const p = rosterEntries().find(x=>x.n===n); if(!p) return;
+  runBib = p.bib;
+  $("runTitle").textContent = `${p.bib}　${p.name || ""}`;
+  $("runFin").disabled = state.start==null;
+  $("runInfo").textContent = state.start==null ? "スタート時刻が未設定のため、ゴールは記録できません（設定タブで決めてください）。"
+    : `スタートから ${fmtDur(Date.now()-state.start)}。記録する内容を選んでください。`;
+  runDlg.showModal();
+}
+function runRecord(kind){
+  const bib = runBib; if(!bib) return;
+  if(recMap().has(norm(bib))){ runDlg.close(); msg("listMsg",`受付番号 ${bib} はすでに記録されています。`,"err"); renderList(); return; }
+  if(kind==="FIN" && state.start==null) return;
+  const rec = {id:newId(), bib, t:Date.now(), st:kind};
+  state.finishes.push(rec); freshId = rec.id; save(); runDlg.close();
+  if(kind==="FIN"){
+    const text = `${labelOf(bib)} ／ タイム ${fmtDur(rec.t-state.start)}`;
+    stampMsg(text); msg("listMsg", text+" でゴールを記録しました。", "");
+  } else {
+    msg("recMsg",`${labelOf(bib)} を ${kind}（${kind==="DNS"?"未出走":"途中棄権"}）で記録しました。タイムは付きません。`,"warn");
+    msg("listMsg",`${labelOf(bib)} を ${kind}（${kind==="DNS"?"未出走":"途中棄権"}）で記録しました。`,"warn");
+  }
+  renderAll();
+}
+function runCustom(){                           // 時刻を指定するときは、いつもの編集画面を番号入りで開く
+  const bib = runBib; runDlg.close(); openEdit(null); $("eBib").value = bib || "";
+}
+function tickRunning(){                         // 走行中の人の経過時間を時計に合わせて進める
+  if(listView!=="people" || state.start==null || $("pane-list").classList.contains("hidden")) return;
+  const t = fmtDur(Date.now()-state.start);
+  document.querySelectorAll('#peopleBody [data-run]').forEach(e=>{ if(e.textContent!==t) e.textContent=t; });
 }
 function renderRoster(){
   const n = Object.keys(state.roster).length;
