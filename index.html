@@ -947,6 +947,7 @@ function wipe(){
   $("rosterFile").value=""; $("backupFile").value=""; $("bib").value="";
   freshId=null; editingId=null; $("sortSel").value="time";
   save(); renderAll(); msg("backupMsg","全データを削除しました。","");
+  abDismissed=false; abRender();                 // やり直すときは、自動バックアップがオフなら警告をまた出す
 }
 
 /* ---------- roster import ---------- */
@@ -1402,7 +1403,8 @@ async function abChoose(){
   try{
     const h=await window.showSaveFilePicker({suggestedName:"race-backup.json",
       types:[{description:"バックアップ（JSON）",accept:{"application/json":[".json"]}}]});
-    ab.handle=h; ab.status="on";
+    ab.handle=h; ab.status="on"; abDismissed=false;
+    msg("abMsg","","");                            // 前の「停止しました」などの古いお知らせを消す
     try{ await idbSet("backup",h); }catch(e){ msg("abMsg","保存先は設定しましたが、次回起動時に再選択が必要になる場合があります。","warn"); }
     await abWrite(true);
   }catch(e){ if(e.name!=="AbortError") msg("abMsg","保存先を設定できませんでした："+e.message,"err"); }
@@ -1418,7 +1420,7 @@ async function abResume(){
   abRender();
 }
 async function abStop(){
-  ab.handle=null; ab.status="off"; ab.err=""; abDismissed=true;   // 自分で止めたときは警告を出さない
+  ab.handle=null; ab.status="off"; ab.err=""; abDismissed=false;  // 止めたあとも、オフの警告はすぐに出す
   try{ await idbDel("backup"); }catch(e){}
   msg("abMsg","自動バックアップを停止しました（保存済みのファイルはそのまま残ります）。","");
   abRender();
@@ -1464,7 +1466,7 @@ function abRender(){
   for(const id of ["abBanner","abBannerSet"]){ const b=$(id); b.innerHTML=html; b.style.display = html ? "" : "none"; }
   $("abPanel").classList.toggle("warn", !!html);
 }
-let abDismissed = false;                         // 「今回は使わない」：開き直すまで警告を出さない
+let abDismissed = false;                         // 「今回は使わない」：次に停止・全データ削除・開き直すまで警告を出さない
 function abDismiss(){ abDismissed = true; abRender(); }
 
 /* ---------- boot ---------- */
