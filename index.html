@@ -93,7 +93,7 @@
   .entry .btn.primary{width:34%;max-width:200px;height:64px;font-size:22px}
 
   .sub-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-  .sub-actions .btn{flex:1 1 0;min-width:0}
+  .sub-actions .btn{flex:1 1 0;min-width:0;line-height:1.25;text-align:center}   /* 狭いときは「時刻だけ／打刻」の2行になる */
   .sub-actions .spacer{flex:0 0 14px}
 
   /* ---- ボタン ---- */
@@ -145,6 +145,11 @@
 
   .alert{border:2px solid var(--warn);background:#FFF6E6;border-radius:12px;padding:10px 14px;margin-bottom:12px;
     display:flex;align-items:center;gap:12px;color:var(--warn);font-weight:700}
+  .ab-alert{flex-wrap:wrap}
+  .ab-alert .t{flex:1 1 260px;min-width:0;line-height:1.5}
+  .ab-alert .t small{display:block;font-weight:400;color:var(--ink);font-size:13px}
+  .ab-alert .a{display:flex;gap:8px;flex-wrap:wrap}
+  #abPanel.warn{border:2px solid var(--warn)}
 
   /* ---- 表 ---- */
   table{width:100%;border-collapse:collapse;table-layout:fixed}
@@ -301,6 +306,8 @@
     td{height:46px}
     .club{height:34px}
     .sheethead img{height:46px}
+    .alert{padding:6px 12px;margin-bottom:8px}
+    .ab-alert .t small{display:none}      /* 横向きスマホでは説明を省いて1行に */
   }
   @media (prefers-reduced-motion:reduce){
     tr.fresh td{animation:none;background:var(--vest-soft)}
@@ -324,10 +331,7 @@
 
   <!-- 記録 -->
   <section id="pane-rec">
-    <div class="alert" id="abBanner" style="display:none">
-      自動バックアップが止まっています。
-      <button class="btn sm" onclick="abResume()">再開する</button>
-    </div>
+    <div class="alert ab-alert" id="abBanner" style="display:none"></div>
 
     <div class="rec">
       <div class="panel">
@@ -425,6 +429,7 @@
 
   <!-- 設定 -->
   <section id="pane-set" class="hidden">
+    <div class="alert ab-alert" id="abBannerSet" style="display:none"></div>
     <div class="settings">
       <div class="col">
         <div class="panel">
@@ -457,7 +462,7 @@
       </div>
 
       <div class="col">
-        <div class="panel">
+        <div class="panel" id="abPanel">
           <h2>自動バックアップ（パソコンの Chrome / Edge）</h2>
           <p class="hint" id="abState" style="margin-top:0"></p>
           <div class="row">
@@ -1413,7 +1418,7 @@ async function abResume(){
   abRender();
 }
 async function abStop(){
-  ab.handle=null; ab.status="off"; ab.err="";
+  ab.handle=null; ab.status="off"; ab.err=""; abDismissed=true;   // 自分で止めたときは警告を出さない
   try{ await idbDel("backup"); }catch(e){}
   msg("abMsg","自動バックアップを停止しました（保存済みのファイルはそのまま残ります）。","");
   abRender();
@@ -1446,8 +1451,21 @@ function abRender(){
   $("abChoose").style.display = (sup && st==="off") ? "" : "none";
   $("abResume").style.display = (sup && (st==="need"||st==="err")) ? "" : "none";
   $("abStop").style.display   = (sup && st!=="off") ? "" : "none";
-  $("abBanner").style.display = (sup && (st==="need"||st==="err")) ? "block" : "none";
+  // 自動バックアップが使えるブラウザなのに動いていないときは、記録タブと設定タブに警告を出す
+  let html = "";
+  if(sup && st==="off" && !abDismissed){
+    html = `<div class="t">自動バックアップがオフです<small>このブラウザでは使えます。保存先のファイルを1回選ぶと、記録するたびに自動で保存されます。</small></div>
+      <div class="a"><button class="btn primary sm" onclick="abChoose()">保存先を選ぶ</button>
+      <button class="btn quiet sm" onclick="abDismiss()">今回は使わない</button></div>`;
+  } else if(sup && (st==="need"||st==="err")){
+    html = `<div class="t">自動バックアップが止まっています<small>${st==="need" ? "ブラウザを開き直したため、保存の許可がもう一度必要です。" : "保存に失敗しました。もう一度試してください。"}</small></div>
+      <div class="a"><button class="btn primary sm" onclick="abResume()">再開する</button></div>`;
+  }
+  for(const id of ["abBanner","abBannerSet"]){ const b=$(id); b.innerHTML=html; b.style.display = html ? "" : "none"; }
+  $("abPanel").classList.toggle("warn", !!html);
 }
+let abDismissed = false;                         // 「今回は使わない」：開き直すまで警告を出さない
+function abDismiss(){ abDismissed = true; abRender(); }
 
 /* ---------- boot ---------- */
 $("bib").addEventListener("keydown", e=>{ if(e.key==="Enter") recordFinish(); });
